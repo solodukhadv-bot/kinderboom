@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Касса Детского Центра</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-soft: #eff6ff;
+      --cash: #16a34a;
+      --card-pay: #0284c7;
+      --danger: #dc2626;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      margin: 0;
+      padding: 0 0 86px 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .header-title { font-weight: 700; font-size: 16px; line-height: 1.2; }
+    .header-sub { font-size: 12px; color: var(--muted); }
+    .badges { display: flex; align-items: center; gap: 6px; }
+
+    .day-toggle {
+      border: 1px solid var(--border);
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .day-toggle.weekend { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+
+    .sync-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #fee2e2;
+      color: #b91c1c;
+      white-space: nowrap;
+    }
+
+    .sync-badge.ok { background: #dcfce7; color: #15803d; }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 12px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .input-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+    @media (min-width: 540px) { .input-row.two-col { grid-template-columns: 1fr 1fr; } }
+
+    .input-wrap { position: relative; }
+
+    input[type="text"], input[type="tel"], input[type="number"] {
+      width: 100%;
+      height: 46px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 0 36px 0 12px;
+      font-size: 16px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+
+    input:focus { border-color: var(--primary); }
+
+    .clear-inp-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: #e2e8f0;
+      color: #475569;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .clear-inp-btn.visible { display: flex; }
+
+    .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+    .chip-btn {
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .chip-btn:active { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+
+    .tariff-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .tariff-btn {
+      height: 66px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      padding: 8px 10px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .tariff-btn.active { border-color: var(--primary); background: var(--primary-soft); }
+    .tariff-name { font-weight: 700; font-size: 13px; line-height: 1.2; }
+    .tariff-price { font-size: 13px; font-weight: 600; color: var(--primary); }
+
+    .counter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+
+    .counter-box {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      height: 54px;
+    }
+
+    .counter-label { font-size: 13px; font-weight: 600; }
+    .counter-controls { display: flex; align-items: center; gap: 8px; }
+
+    .cnt-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cnt-val { min-width: 22px; text-align: center; font-weight: 700; font-size: 16px; }
+
+    .proof-box {
+      display: none;
+      border: 1.5px dashed #f59e0b;
+      background: #fffbeb;
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+
+    .proof-box.visible { display: block; }
+
+    .proof-btn {
+      width: 100%;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: #f59e0b;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .proof-status { font-size: 12px; color: #92400e; margin-top: 6px; font-weight: 600; text-align: center; }
+
+    .pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .pay-btn {
+      height: 56px;
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.15;
+    }
+
+    .pay-btn.cash { background: var(--cash); }
+    .pay-btn.card { background: var(--card-pay); }
+    .pay-btn:active { opacity: 0.88; }
+
+    .timers-card {
+      background: #fffbeb;
+      border: 1.5px solid #fde68a;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .timers-card.visible { display: block; }
+
+    .timer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #fef3c7;
+      font-size: 13px;
+    }
+
+    .timer-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .timer-row.expired { color: var(--danger); font-weight: 700; }
+
+    .timer-done-btn {
+      border: 1px solid #d97706;
+      background: #fff;
+      color: #b45309;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .services-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    @media (min-width: 600px) { .services-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .srv-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .srv-info { flex: 1; min-width: 0; }
+    .srv-title { font-weight: 700; font-size: 13px; line-height: 1.2; margin-bottom: 3px; }
+    .srv-meta { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+    .srv-badge {
+      display: inline-block;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 6px;
+      margin-left: 4px;
+    }
+
+    .srv-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    .srv-pay-btn {
+      width: 56px;
+      height: 46px;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .srv-pay-btn.cash { background: var(--cash); }
+    .srv-pay-btn.card { background: var(--card-pay); }
+
+    .srv-undo-btn {
+      width: 34px;
+      height: 46px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--muted);
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .sum-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 8px; text-align: center; }
+    .sum-box-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .sum-box-val { font-size: 14px; font-weight: 800; margin-top: 2px; }
+
+    .report-pre {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      margin: 0 0 12px 0;
+    }
+
+    .action-btn {
+      width: 100%;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .action-btn.primary { background: var(--primary); color: #fff; }
+    .action-btn.success { background: var(--cash); color: #fff; }
+    .action-btn.danger { background: #fee2e2; color: var(--danger); }
+
+    .log-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      gap: 8px;
+    }
+
+    .log-item:last-child { border-bottom: none; }
+
+    .log-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .log-del-btn {
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: var(--danger);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 68px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      z-index: 30;
+    }
+
+    .nav-btn {
+      border: none;
+      background: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .nav-btn.active { color: var(--primary); }
+    .nav-icon { font-size: 20px; line-height: 1; }
+    .nav-sub { font-size: 10px; font-weight: 700; color: var(--cash); }
+
+    .toast {
+      position: fixed;
+      top: 64px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="header-title">Касса Игровой</div>
+      <div class="header-sub" id="todayDateLabel"></div>
+    </div>
+    <div class="badges">
+      <button type="button" class="day-toggle" id="dayTypeBtn" onclick="toggleDayType()">Будни</button>
+      <div class="sync-badge" id="syncBadge">Демо</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Сохранено</div>
+
+  <div class="container">
+    <!-- ИГРОВАЯ -->
+    <div class="tab-panel active" id="tab-game">
+      <div class="card">
+        <div class="section-label">1. Данные посетителя</div>
+        <div class="input-row two-col">
+          <div class="input-wrap">
+            <input type="text" id="childNameInput" placeholder="Имя (можно через запятую)" autocomplete="off" oninput="toggleClearBtn('childNameInput', 'clearChildBtn')" />
+            <button type="button" class="clear-inp-btn" id="clearChildBtn" onclick="clearInput('childNameInput', 'clearChildBtn')">✕</button>
+          </div>
+          <div>
+            <div class="input-wrap">
+              <input type="tel" inputmode="tel" id="parentPhoneInput" placeholder="Телефон родителя" autocomplete="off" oninput="formatPhoneInput(this)" />
+              <button type="button" class="clear-inp-btn" id="clearPhoneBtn" onclick="clearInput('parentPhoneInput', 'clearPhoneBtn')">✕</button>
+            </div>
+            <div class="chips-wrap">
+              <button type="button" class="chip-btn" onclick="setPhonePrefix('8 701 ')">701</button>
+              <button type="button" class="chip-btn" onclick="setPhonePrefix('8 702 ')">702</button>
+              <button type="button" class="chip-btn" onclick="setPhonePrefix('8 705 ')">705</button>
+              <button type="button" class="chip-btn" onclick="setPhonePrefix('8 707 ')">707</button>
+              <button type="button" class="chip-btn" onclick="setPhonePrefix('8 777 ')">777</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-label">2. Тариф</div>
+        <div class="tariff-grid" id="tariffGrid"></div>
+
+        <div id="banquetAmountBox" style="display: none; margin-bottom: 12px;">
+          <input type="number" inputmode="numeric" id="banquetCustomPrice" placeholder="Сумма банкета (тг)" oninput="updateGamePayLabels()" />
+        </div>
+
+        <div class="counter-row">
+          <div class="counter-box">
+            <span class="counter-label">Детей</span>
+            <div class="counter-controls">
+              <button type="button" class="cnt-btn" onclick="changeGameCount('kids', -1)">−</button>
+              <span class="cnt-val" id="kidsCountVal">1</span>
+              <button type="button" class="cnt-btn" onclick="changeGameCount('kids', 1)">+</button>
+            </div>
+          </div>
+          <div class="counter-box">
+            <span class="counter-label">Родителей</span>
+            <div class="counter-controls">
+              <button type="button" class="cnt-btn" onclick="changeGameCount('parents', -1)">−</button>
+              <span class="cnt-val" id="parentsCountVal">1</span>
+              <button type="button" class="cnt-btn" onclick="changeGameCount('parents', 1)">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="proof-box" id="proofBox">
+          <input type="file" id="proofFileInput" accept="image/*" capture="environment" style="display: none;" onchange="handleProofFile(event)" />
+          <button type="button" class="proof-btn" onclick="document.getElementById('proofFileInput').click()">
+            📷 Сфотографировать справку
+          </button>
+          <div class="proof-status" id="proofStatusText">Для льготного тарифа прикрепите фото документа</div>
+        </div>
+
+        <div class="section-label">3. Оплата</div>
+        <div class="pay-grid">
+          <button type="button" class="pay-btn cash" onclick="submitGameEntry('Нал')">
+            <span>💵 НАЛИЧНЫЕ</span>
+            <span style="font-size: 12px; opacity: 0.9;" id="payCashSum">2.500 тг</span>
+          </button>
+          <button type="button" class="pay-btn card" onclick="submitGameEntry('Безнал')">
+            <span>💳 БЕЗНАЛ / QR</span>
+            <span style="font-size: 12px; opacity: 0.9;" id="payCardSum">2.500 тг</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ДОП. УСЛУГИ -->
+    <div class="tab-panel" id="tab-services">
+      <div class="timers-card" id="activeTimersCard">
+        <div class="section-label" style="color: #b45309; margin-bottom: 4px;">⏱ Таймеры пинг-понга</div>
+        <div id="activeTimersList"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Имя ребенка (поиск по всем за смену или ввод нового)</div>
+        <div class="input-wrap">
+          <input type="text" id="serviceChildNameInput" placeholder="Начните вводить имя или выберите..." autocomplete="off" oninput="onServiceNameInput()" />
+          <button type="button" class="clear-inp-btn" id="clearSrvChildBtn" onclick="clearServiceName()">✕</button>
+        </div>
+        <div class="chips-wrap" id="recentKidsChips"></div>
+      </div>
+
+      <div class="services-grid" id="servicesGrid"></div>
+    </div>
+
+    <!-- ИТОГИ -->
+    <div class="tab-panel" id="tab-report">
+      <div class="card">
+        <div class="section-label">Выручка за смену</div>
+        <div class="summary-grid">
+          <div class="sum-box">
+            <div class="sum-box-label">Наличные</div>
+            <div class="sum-box-val" style="color: var(--cash);" id="totalCashVal">0 тг</div>
+          </div>
+          <div class="sum-box">
+            <div class="sum-box-label">Безнал</div>
+            <div class="sum-box-val" style="color: var(--card-pay);" id="totalCardVal">0 тг</div>
+          </div>
+          <div class="sum-box">
+            <div class="sum-box-label">Всего</div>
+            <div class="sum-box-val" id="totalAllVal">0 тг</div>
+          </div>
+        </div>
+
+        <div class="section-label">Отчет за смену</div>
+        <pre class="report-pre" id="reportPreview"></pre>
+
+        <button type="button" class="action-btn success" onclick="sendReportToTelegramNow()">📤 Отправить отчет в Telegram</button>
+        <button type="button" class="action-btn primary" onclick="copyReport()">📋 Скопировать текст отчета</button>
+        <button type="button" class="action-btn danger" onclick="resetShift()">🗑 Начать новую смену</button>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Операции за смену (<span id="opsCountVal">0</span>)</div>
+        <div id="historyList"></div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button type="button" class="nav-btn active" id="nav-game" onclick="switchTab('game')">
+      <span class="nav-icon">🎠</span>
+      <span>Игровая</span>
+    </button>
+    <button type="button" class="nav-btn" id="nav-services" onclick="switchTab('services')">
+      <span class="nav-icon">🏓</span>
+      <span>Доп. услуги</span>
+      <span class="nav-sub" id="navTimersBadge"></span>
+    </button>
+    <button type="button" class="nav-btn" id="nav-report" onclick="switchTab('report')">
+      <span class="nav-icon">📊</span>
+      <span>Итоги</span>
+      <span class="nav-sub" id="navTotalBadge">0 тг</span>
+    </button>
+  </nav>
+
+  <script>
+    // ВСТАВЬТЕ СЮДА ССЫЛКУ /exec ИЗ GOOGLE APPS SCRIPT:
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGXQ7NUZQp9YLtISdRMSFBTGOOXE-iwUrzD33OJYZjVacWOCWMiOznUHnyV8GQPZfwkQ/exec";
+
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+    }
+
+    const now = new Date();
+    const todayStr = now.toLocaleDateString("ru-RU");
+    document.getElementById("todayDateLabel").textContent = todayStr;
+    let isWeekend = (now.getDay() === 0 || now.getDay() === 6);
+
+    const TARIFFS = [
+      { id: "unlimited", name: "Безлимит", weekday: 2500, weekend: 3000, needsProof: false },
+      { id: "large_family", name: "Скидка многодетным 25%", weekday: 1875, weekend: 2250, needsProof: true },
+      { id: "birthday", name: "Скидка имениннику 25%", weekday: 1875, weekend: 2250, needsProof: false },
+      { id: "special", name: "Особенные дети 50%", weekday: 1250, weekend: 1500, needsProof: true },
+      { id: "staff", name: "Скидка сотрудникам 50%", weekday: 1250, weekend: 1500, needsProof: false },
+      { id: "banquet", name: "Банкет", weekday: 0, weekend: 0, needsProof: false, isCustom: true }
+    ];
+
+    const SERVICES = [
+      { id: "sand", name: "Песок", price: 700, timerMin: 0 },
+      { id: "fish", name: "Рыбка", price: 700, timerMin: 0 },
+      { id: "table_30", name: "Аренда теннисного стола 30 мин", price: 500, timerMin: 30 },
+      { id: "table_60", name: "Аренда теннисного стола 60 мин", price: 700, timerMin: 60 },
+      { id: "tennis_30", name: "Настольный теннис 30 мин", price: 700, timerMin: 30 },
+      { id: "tennis_60", name: "Настольный теннис 60 мин", price: 1000, timerMin: 60 },
+      { id: "socks", name: "Носки", price: 400, timerMin: 0 },
+      { id: "lost_ball", name: "Утеря шарик теннисный", price: 500, timerMin: 0 }
+    ];
+
+    let selectedTariffId = "unlimited";
+    let kidsCount = 1;
+    let parentsCount = 1;
+    let currentProofBase64 = "";
+
+    const STORAGE_KEY = "kassa_shift_pro_" + todayStr;
+    let shift = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+      transactions: [],
+      pendingQueue: [],
+      timers: []
+    };
+    if (!shift.timers) shift.timers = [];
+
+    function saveShift() { localStorage.setItem(STORAGE_KEY, JSON.stringify(shift)); }
+    function haptic(type = "light") { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type); }
+    function formatNum(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.remove("show"), 1900);
+    }
+
+    function toggleClearBtn(inpId, btnId) {
+      const val = document.getElementById(inpId).value;
+      document.getElementById(btnId).classList.toggle("visible", val.length > 0);
+    }
+
+    function clearInput(inpId, btnId) {
+      haptic("light");
+      const inp = document.getElementById(inpId);
+      inp.value = "";
+      document.getElementById(btnId).classList.remove("visible");
+      inp.focus();
+    }
+
+    function formatPhoneInput(inp) {
+      let digits = inp.value.replace(/\D/g, "");
+      if (digits.startsWith("7") && digits.length > 1) digits = "8" + digits.slice(1);
+      if (digits.length > 11) digits = digits.slice(0, 11);
+
+      let res = "";
+      if (digits.length > 0) res = digits[0];
+      if (digits.length > 1) res += " " + digits.slice(1, 4);
+      if (digits.length > 4) res += " " + digits.slice(4, 7);
+      if (digits.length > 7) res += " " + digits.slice(7, 9);
+      if (digits.length > 9) res += " " + digits.slice(9, 11);
+
+      inp.value = res;
+      toggleClearBtn("parentPhoneInput", "clearPhoneBtn");
+    }
+
+    function setPhonePrefix(prefix) {
+      haptic("light");
+      const inp = document.getElementById("parentPhoneInput");
+      const digits = inp.value.replace(/\D/g, "");
+      if (digits.length > 4) {
+        inp.value = prefix + digits.slice(4);
+        formatPhoneInput(inp);
+      } else {
+        inp.value = prefix;
+      }
+      toggleClearBtn("parentPhoneInput", "clearPhoneBtn");
+      inp.focus();
+    }
+
+    function updateSyncBadge() {
+      const badge = document.getElementById("syncBadge");
+      const ok = GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith("https://");
+      if (!ok) {
+        badge.textContent = "Демо";
+        badge.classList.remove("ok");
+      } else if (shift.pendingQueue.length > 0) {
+        badge.textContent = `Очередь: ${shift.pendingQueue.length}`;
+        badge.classList.remove("ok");
+      } else {
+        badge.textContent = "Google ОК";
+        badge.classList.add("ok");
+      }
+    }
+
+    function updateNavTotals() {
+      let total = 0;
+      shift.transactions.forEach(t => total += (t.amount || 0));
+      document.getElementById("navTotalBadge").textContent = `${formatNum(total)} тг`;
+    }
+
+    function updateDayToggleUI() {
+      const btn = document.getElementById("dayTypeBtn");
+      btn.textContent = isWeekend ? "Выходные" : "Будни";
+      btn.classList.toggle("weekend", isWeekend);
+      renderTariffs();
+      updateGamePayLabels();
+    }
+
+    function toggleDayType() {
+      haptic("medium");
+      isWeekend = !isWeekend;
+      updateDayToggleUI();
+      showToast(isWeekend ? "Тарифы выходного дня" : "Тарифы буднего дня");
+    }
+
+    function renderTariffs() {
+      const grid = document.getElementById("tariffGrid");
+      grid.innerHTML = TARIFFS.map(t => {
+        const price = isWeekend ? t.weekend : t.weekday;
+        const priceLabel = t.isCustom ? "Ввод суммы" : `${formatNum(price)} тг`;
+        return `
+          <button type="button" class="tariff-btn ${t.id === selectedTariffId ? "active" : ""}" onclick="selectTariff('${t.id}')">
+            <div class="tariff-name">${t.name}</div>
+            <div class="tariff-price">${priceLabel}</div>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function selectTariff(id) {
+      haptic("light");
+      selectedTariffId = id;
+      const tariff = TARIFFS.find(t => t.id === id);
+      document.getElementById("banquetAmountBox").style.display = tariff.isCustom ? "block" : "none";
+      document.getElementById("proofBox").classList.toggle("visible", !!tariff.needsProof);
+
+      if (tariff.isCustom && kidsCount === 1) {
+        kidsCount = 0;
+        document.getElementById("kidsCountVal").textContent = "0";
+      } else if (!tariff.isCustom && kidsCount === 0) {
+        kidsCount = 1;
+        document.getElementById("kidsCountVal").textContent = "1";
+      }
+      renderTariffs();
+      updateGamePayLabels();
+    }
+
+    function changeGameCount(type, delta) {
+      haptic("light");
+      if (type === "kids") {
+        kidsCount = Math.max(0, kidsCount + delta);
+        document.getElementById("kidsCountVal").textContent = kidsCount;
+        updateGamePayLabels();
+      } else {
+        parentsCount = Math.max(0, parentsCount + delta);
+        document.getElementById("parentsCountVal").textContent = parentsCount;
+      }
+    }
+
+    function getCurrentGameAmount() {
+      const tariff = TARIFFS.find(t => t.id === selectedTariffId);
+      if (tariff.isCustom) return Math.max(0, Number(document.getElementById("banquetCustomPrice").value || 0));
+      return (isWeekend ? tariff.weekend : tariff.weekday) * kidsCount;
+    }
+
+    function updateGamePayLabels() {
+      const label = `${formatNum(getCurrentGameAmount())} тг`;
+      document.getElementById("payCashSum").textContent = label;
+      document.getElementById("payCardSum").textContent = label;
+    }
+
+    function handleProofFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const statusEl = document.getElementById("proofStatusText");
+      statusEl.textContent = "⏳ Сжимаем фото...";
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          const maxSide = 1000;
+          let w = img.width, h = img.height;
+          if (w > maxSide || h > maxSide) {
+            if (w > h) { h = Math.round((h * maxSide) / w); w = maxSide; }
+            else { w = Math.round((w * maxSide) / h); h = maxSide; }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          currentProofBase64 = canvas.toDataURL("image/jpeg", 0.72);
+          statusEl.textContent = "✅ Справка прикреплена";
+          haptic("medium");
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function submitGameEntry(paymentType) {
+      const tariff = TARIFFS.find(t => t.id === selectedTariffId);
+      const childName = document.getElementById("childNameInput").value.trim();
+      const phone = document.getElementById("parentPhoneInput").value.trim();
+      const amount = getCurrentGameAmount();
+
+      if (amount <= 0) { showToast("Укажите количество детей или сумму"); return; }
+      if (!tariff.isCustom && !childName) {
+        showToast("Введите имя ребенка");
+        document.getElementById("childNameInput").focus();
+        return;
+      }
+
+      if (document.activeElement) document.activeElement.blur();
+      haptic("medium");
+
+      const tx = {
+        action: "add",
+        id: Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+        category: "Игровая",
+        tariffId: tariff.id,
+        tariffName: tariff.name,
+        childName: childName || "Банкет",
+        phone: phone,
+        kidsCount: tariff.isCustom ? 0 : kidsCount,
+        parentsCount: parentsCount,
+        amount: amount,
+        paymentType: paymentType,
+        proofBase64: currentProofBase64
+      };
+
+      recordTransaction(tx);
+
+      document.getElementById("childNameInput").value = "";
+      document.getElementById("parentPhoneInput").value = "";
+      document.getElementById("banquetCustomPrice").value = "";
+      document.getElementById("proofFileInput").value = "";
+      toggleClearBtn("childNameInput", "clearChildBtn");
+      toggleClearBtn("parentPhoneInput", "clearPhoneBtn");
+
+      currentProofBase64 = "";
+      document.getElementById("proofStatusText").textContent = "Для льготного тарифа прикрепите фото документа";
+      kidsCount = tariff.isCustom ? 0 : 1;
+      parentsCount = 1;
+      document.getElementById("kidsCountVal").textContent = kidsCount;
+      document.getElementById("parentsCountVal").textContent = parentsCount;
+      updateGamePayLabels();
+
+      showToast(`✅ ${tx.childName} (${paymentType})`);
+    }
+
+    function renderServicesCards() {
+      const grid = document.getElementById("servicesGrid");
+      grid.innerHTML = SERVICES.map(s => `
+        <div class="srv-card">
+          <div class="srv-info">
+            <div class="srv-title">${s.name}</div>
+            <div class="srv-meta">${formatNum(s.price)} тг <span class="srv-badge" id="srv-cnt-${s.id}">0 шт</span></div>
+          </div>
+          <div class="srv-actions">
+            <button type="button" class="srv-pay-btn cash" onclick="addServiceSale('${s.id}', 'Нал')">+ Нал</button>
+            <button type="button" class="srv-pay-btn card" onclick="addServiceSale('${s.id}', 'Безнал')">+ Безн</button>
+            <button type="button" class="srv-undo-btn" onclick="undoServiceSale('${s.id}')">−1</button>
+          </div>
+        </div>
+      `).join("");
+      updateServiceCountersUI();
+    }
+
+    function updateServiceCountersUI() {
+      const counts = {};
+      SERVICES.forEach(s => counts[s.id] = 0);
+      shift.transactions.forEach(tx => {
+        if (tx.category === "Услуга" && counts[tx.tariffId] !== undefined) counts[tx.tariffId] += 1;
+      });
+      SERVICES.forEach(s => {
+        const el = document.getElementById(`srv-cnt-${s.id}`);
+        if (el) el.textContent = `${counts[s.id]} шт`;
+      });
+    }
+
+    function getAllUniqueKidNames() {
+      const seen = new Set();
+      const result = [];
+      for (let i = shift.transactions.length - 1; i >= 0; i--) {
+        const raw = shift.transactions[i].childName;
+        if (!raw || raw === "Банкет") continue;
+        raw.split(/[,;]+/).forEach(part => {
+          const clean = part.trim();
+          const key = clean.toLowerCase();
+          if (clean && !seen.has(key)) {
+            seen.add(key);
+            result.push(clean);
+          }
+        });
+      }
+      return result;
+    }
+
+    function onServiceNameInput() {
+      toggleClearBtn("serviceChildNameInput", "clearSrvChildBtn");
+      updateRecentKidsChips();
+    }
+
+    function clearServiceName() {
+      clearInput("serviceChildNameInput", "clearSrvChildBtn");
+      updateRecentKidsChips();
+    }
+
+    function updateRecentKidsChips() {
+      const wrap = document.getElementById("recentKidsChips");
+      const query = document.getElementById("serviceChildNameInput").value.trim().toLowerCase();
+      const allNames = getAllUniqueKidNames();
+
+      const filtered = query
+        ? allNames.filter(n => n.toLowerCase().includes(query)).slice(0, 12)
+        : allNames.slice(0, 10);
+
+      wrap.innerHTML = filtered.map(name =>
+        `<button type="button" class="chip-btn" onclick="pickServiceChildName('${name.replace(/'/g, "\\'")}')">${name}</button>`
+      ).join("");
+    }
+
+    function pickServiceChildName(name) {
+      haptic("light");
+      document.getElementById("serviceChildNameInput").value = name;
+      toggleClearBtn("serviceChildNameInput", "clearSrvChildBtn");
+      updateRecentKidsChips();
+    }
+
+    function addServiceSale(serviceId, paymentType) {
+      const srv = SERVICES.find(s => s.id === serviceId);
+      const childInp = document.getElementById("serviceChildNameInput");
+      const childName = childInp.value.trim();
+
+      if (!childName) {
+        showToast("Введите или выберите имя ребенка");
+        childInp.focus();
+        return;
+      }
+
+      if (document.activeElement) document.activeElement.blur();
+      haptic("medium");
+
+      const txId = Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+      const tx = {
+        action: "add",
+        id: txId,
+        time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+        category: "Услуга",
+        tariffId: srv.id,
+        tariffName: srv.name,
+        childName: childName,
+        phone: "",
+        kidsCount: 0,
+        parentsCount: 0,
+        amount: srv.price,
+        paymentType: paymentType,
+        proofBase64: ""
+      };
+
+      if (srv.timerMin > 0) {
+        shift.timers.push({
+          txId: txId,
+          childName: childName,
+          serviceName: srv.name,
+          expiresAt: Date.now() + srv.timerMin * 60000
+        });
+      }
+
+      recordTransaction(tx);
+      childInp.value = "";
+      toggleClearBtn("serviceChildNameInput", "clearSrvChildBtn");
+      updateRecentKidsChips();
+      updateServiceCountersUI();
+      renderTimersUI();
+      showToast(`✅ ${srv.name} — ${childName} (${paymentType})`);
+    }
+
+    function undoServiceSale(serviceId) {
+      const idx = [...shift.transactions].reverse().findIndex(t => t.category === "Услуга" && t.tariffId === serviceId);
+      if (idx === -1) { showToast("Нет записей для отмены"); return; }
+      const realIdx = shift.transactions.length - 1 - idx;
+      deleteTransactionById(shift.transactions[realIdx].id);
+    }
+
+    function deleteTransactionById(txId) {
+      const idx = shift.transactions.findIndex(t => t.id === txId);
+      if (idx === -1) return;
+      haptic("medium");
+
+      const removed = shift.transactions.splice(idx, 1)[0];
+      shift.timers = shift.timers.filter(tm => tm.txId !== txId);
+
+      const qIdx = shift.pendingQueue.findIndex(q => q.id === txId);
+      if (qIdx !== -1) {
+        shift.pendingQueue.splice(qIdx, 1);
+      } else {
+        shift.pendingQueue.push({ action: "delete", id: txId });
+      }
+
+      saveShift();
+      updateServiceCountersUI();
+      updateRecentKidsChips();
+      renderTimersUI();
+      updateNavTotals();
+      if (document.getElementById("tab-report").classList.contains("active")) renderReportTab();
+      flushQueueToGoogle();
+
+      showToast(`↩ Удалено: ${removed.childName} (${removed.tariffName})`);
+    }
+
+    function dismissTimer(txId) {
+      haptic("light");
+      shift.timers = shift.timers.filter(tm => tm.txId !== txId);
+      saveShift();
+      renderTimersUI();
+    }
+
+    function renderTimersUI() {
+      const card = document.getElementById("activeTimersCard");
+      const list = document.getElementById("activeTimersList");
+      const navBadge = document.getElementById("navTimersBadge");
+
+      if (!shift.timers || shift.timers.length === 0) {
+        card.classList.remove("visible");
+        navBadge.textContent = "";
+        return;
+      }
+
+      card.classList.add("visible");
+      const nowMs = Date.now();
+      let expiredCount = 0;
+
+      list.innerHTML = shift.timers.map(tm => {
+        const diffMin = Math.ceil((tm.expiresAt - nowMs) / 60000);
+        const isExp = diffMin <= 0;
+        if (isExp) expiredCount++;
+        const statusText = isExp ? "⏰ Время вышло!" : `осталось ${diffMin} мин`;
+        return `
+          <div class="timer-row ${isExp ? "expired" : ""}">
+            <div><strong>${tm.childName}</strong> · ${tm.serviceName} (${statusText})</div>
+            <button type="button" class="timer-done-btn" onclick="dismissTimer('${tm.txId}')">✓ Завершить</button>
+          </div>
+        `;
+      }).join("");
+
+      navBadge.textContent = expiredCount > 0 ? `⏰ ${expiredCount}` : `⏱ ${shift.timers.length}`;
+      navBadge.style.color = expiredCount > 0 ? "var(--danger)" : "#d97706";
+    }
+
+    function recordTransaction(tx) {
+      shift.transactions.push(tx);
+      shift.pendingQueue.push(tx);
+      saveShift();
+      updateRecentKidsChips();
+      updateNavTotals();
+      flushQueueToGoogle();
+    }
+
+    let isSyncing = false;
+    async function flushQueueToGoogle() {
+      updateSyncBadge();
+      if (isSyncing || shift.pendingQueue.length === 0) return;
+      if (!GOOGLE_SCRIPT_URL || !GOOGLE_SCRIPT_URL.startsWith("https://")) return;
+
+      isSyncing = true;
+      while (shift.pendingQueue.length > 0) {
+        try {
+          await fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(shift.pendingQueue[0])
+          });
+          shift.pendingQueue.shift();
+          saveShift();
+          updateSyncBadge();
+        } catch (err) { break; }
+      }
+      isSyncing = false;
+      updateSyncBadge();
+    }
+
+    async function sendReportToTelegramNow() {
+      if (!GOOGLE_SCRIPT_URL || !GOOGLE_SCRIPT_URL.startsWith("https://")) {
+        showToast("Сначала вставьте ссылку /exec в код");
+        return;
+      }
+      haptic("medium");
+      showToast("⏳ Отправляем отчет в Telegram...");
+      try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "report" })
+        });
+        showToast("✅ Отчет отправлен в Telegram");
+      } catch (e) {
+        showToast("Ошибка сети при отправке");
+      }
+    }
+
+    function buildReportData() {
+      const stats = {
+        unlim_cnt: 0, unlim_sum: 0, fam_cnt: 0, fam_sum: 0, bday_cnt: 0, bday_sum: 0,
+        staff_cnt: 0, staff_sum: 0, spec_cnt: 0, spec_sum: 0, banquet_sum: 0, parents: 0,
+        sand_cnt: 0, sand_sum: 0, fish_cnt: 0, fish_sum: 0, t30_cnt: 0, t30_sum: 0,
+        t60_cnt: 0, t60_sum: 0, ten30_cnt: 0, ten30_sum: 0, ten60_cnt: 0, ten60_sum: 0,
+        socks_cnt: 0, socks_sum: 0, ball_cnt: 0, ball_sum: 0, cashTotal: 0, cardTotal: 0
+      };
+
+      shift.transactions.forEach(tx => {
+        if (tx.paymentType === "Нал") stats.cashTotal += tx.amount;
+        else stats.cardTotal += tx.amount;
+        stats.parents += (tx.parentsCount || 0);
+
+        switch (tx.tariffId) {
+          case "unlimited": stats.unlim_cnt += tx.kidsCount; stats.unlim_sum += tx.amount; break;
+          case "large_family": stats.fam_cnt += tx.kidsCount; stats.fam_sum += tx.amount; break;
+          case "birthday": stats.bday_cnt += tx.kidsCount; stats.bday_sum += tx.amount; break;
+          case "staff": stats.staff_cnt += tx.kidsCount; stats.staff_sum += tx.amount; break;
+          case "special": stats.spec_cnt += tx.kidsCount; stats.spec_sum += tx.amount; break;
+          case "banquet": stats.banquet_sum += tx.amount; break;
+          case "sand": stats.sand_cnt += 1; stats.sand_sum += tx.amount; break;
+          case "fish": stats.fish_cnt += 1; stats.fish_sum += tx.amount; break;
+          case "table_30": stats.t30_cnt += 1; stats.t30_sum += tx.amount; break;
+          case "table_60": stats.t60_cnt += 1; stats.t60_sum += tx.amount; break;
+          case "tennis_30": stats.ten30_cnt += 1; stats.ten30_sum += tx.amount; break;
+          case "tennis_60": stats.ten60_cnt += 1; stats.ten60_sum += tx.amount; break;
+          case "socks": stats.socks_cnt += 1; stats.socks_sum += tx.amount; break;
+          case "lost_ball": stats.ball_cnt += 1; stats.ball_sum += tx.amount; break;
+        }
+      });
+
+      const basePrice = isWeekend ? "3000" : "2500";
+      const line = (label, p, cnt, s) => cnt === 0 ? `${label}: ${p}*-` : `${label}: ${p}*${cnt}=${formatNum(s)}`;
+      const totalKids = stats.unlim_cnt + stats.fam_cnt + stats.bday_cnt + stats.staff_cnt + stats.spec_cnt;
+      const gameTotal = stats.unlim_sum + stats.fam_sum + stats.bday_sum + stats.staff_sum + stats.spec_sum + stats.banquet_sum;
+      const extraTotal = stats.sand_sum + stats.fish_sum + stats.t30_sum + stats.t60_sum + stats.ten30_sum + stats.ten60_sum + stats.socks_sum + stats.ball_sum;
+      const grandTotal = gameTotal + extraTotal;
+      const banquetLine = stats.banquet_sum > 0 ? `Банкет-${formatNum(stats.banquet_sum)}` : "Банкет-";
+
+      const text =
+        `*${todayStr}*\n` +
+        `${line("Безлимит", basePrice, stats.unlim_cnt, stats.unlim_sum)}\n` +
+        `${line("Скидка многодетным", "25%", stats.fam_cnt, stats.fam_sum)}\n` +
+        `${line("Скидка имениннику", "25%", stats.bday_cnt, stats.bday_sum)}\n` +
+        `${line("Скидка сотрудникам", "50%", stats.staff_cnt, stats.staff_sum)}\n` +
+        `${line("Особенные  дети", "50%", stats.spec_cnt, stats.spec_sum)}\n\n` +
+        `${banquetLine}\n\n\n` +
+        `Общее количество детей:${totalKids}\n` +
+        `Количество родит:${stats.parents}\n\n` +
+        `*Итог: ${formatNum(gameTotal)}тг*\n\n\n` +
+        `${line("Песок", "700тг", stats.sand_cnt, stats.sand_sum)}\n` +
+        `${line("Рыбка", "700тг", stats.fish_cnt, stats.fish_sum)}\n` +
+        `${line("Аренда теннисного стола 30 минут", "500", stats.t30_cnt, stats.t30_sum)}\n` +
+        `${line("Аренда теннисного стола 60 минут", "700", stats.t60_cnt, stats.t60_sum)}\n` +
+        `Настольный теннис:\n` +
+        `${line("30 минут", "700", stats.ten30_cnt, stats.ten30_sum)}\n` +
+        `Настольный теннис:\n` +
+        `${line("60 минут", "1000", stats.ten60_cnt, stats.ten60_sum)}\n` +
+        `${line("Носки", "400", stats.socks_cnt, stats.socks_sum)}\n\n \n` +
+        `${line("Утеря шарик теннисный", "500", stats.ball_cnt, stats.ball_sum)}\n\n` +
+        `*Итог: ${formatNum(extraTotal)}тг* \n\n` +
+        `*Итоговая сумма: ${formatNum(grandTotal)}тг*`;
+
+      return { text, cashTotal: stats.cashTotal, cardTotal: stats.cardTotal, grandTotal };
+    }
+
+    function renderReportTab() {
+      const rep = buildReportData();
+      document.getElementById("totalCashVal").textContent = `${formatNum(rep.cashTotal)} тг`;
+      document.getElementById("totalCardVal").textContent = `${formatNum(rep.cardTotal)} тг`;
+      document.getElementById("totalAllVal").textContent = `${formatNum(rep.grandTotal)} тг`;
+      document.getElementById("reportPreview").textContent = rep.text;
+      document.getElementById("opsCountVal").textContent = shift.transactions.length;
+
+      const histEl = document.getElementById("historyList");
+      if (shift.transactions.length === 0) {
+        histEl.innerHTML = `<div style="color: var(--muted); font-size: 13px;">Операций пока нет</div>`;
+        return;
+      }
+      histEl.innerHTML = [...shift.transactions].reverse().map(tx => `
+        <div class="log-item">
+          <div>
+            <strong>${tx.childName}</strong> · ${tx.tariffName}
+            <div style="font-size: 11px; color: var(--muted);">${tx.time} · ${tx.paymentType}</div>
+          </div>
+          <div class="log-right">
+            <span style="font-weight: 700; white-space: nowrap;">${formatNum(tx.amount)} тг</span>
+            <button type="button" class="log-del-btn" onclick="deleteTransactionById('${tx.id}')">✕</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function copyReport() {
+      haptic("medium");
+      navigator.clipboard.writeText(buildReportData().text).then(() => showToast("📋 Отчет скопирован"));
+    }
+
+    function resetShift() {
+      const doClear = () => {
+        shift = { transactions: [], pendingQueue: [], timers: [] };
+        saveShift();
+        updateServiceCountersUI();
+        updateRecentKidsChips();
+        renderTimersUI();
+        updateNavTotals();
+        renderReportTab();
+        showToast("Смена обнулена");
+      };
+      if (tg && tg.showConfirm) tg.showConfirm("Очистить смену на этом устройстве?", ok => { if (ok) doClear(); });
+      else if (confirm("Очистить смену на этом устройстве?")) doClear();
+    }
+
+    function switchTab(tabName) {
+      haptic("light");
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById(`tab-${tabName}`).classList.add("active");
+      document.getElementById(`nav-${tabName}`).classList.add("active");
+      if (tabName === "services") { updateRecentKidsChips(); updateServiceCountersUI(); renderTimersUI(); }
+      else if (tabName === "report") renderReportTab();
+    }
+
+    setInterval(renderTimersUI, 30000);
+
+    updateDayToggleUI();
+    renderServicesCards();
+    updateRecentKidsChips();
+    renderTimersUI();
+    updateNavTotals();
+    updateSyncBadge();
+    flushQueueToGoogle();
+  </script>
+</body>
+</html>
